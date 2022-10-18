@@ -12,6 +12,7 @@ import {io} from 'socket.io-client';
 
 
 // wip:
+// opening 2 tabs and then logging into the 2nd tab causes clickjacked warning
 const socket = io('http://localhost:5000');
 
 

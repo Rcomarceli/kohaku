@@ -9,7 +9,7 @@ let soundsCache = {};
 function importAll(r) {
   r.keys().forEach((key) => (soundsCache[key] = r(key)));
 }
-importAll(require.context('../../kohaku/sounds', false, /.opus$/));
+importAll(require.context('../../bot/sounds', false, /.opus$/));
 
 // absolute path for sounds in preparation for build?
 // rework it so we dont need to get a sound list from the bot 
