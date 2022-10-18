@@ -10,9 +10,14 @@ import { CSSTransition, TransitionGroup } from 'react-transition-group';
 import {Buffer} from 'buffer';
 import {io} from 'socket.io-client';
 
-
 // wip:
 // opening 2 tabs and then logging into the 2nd tab causes clickjacked warning
+// put an additional "Secret" field here so random people dont just login to the app
+
+// multiple tabs + state regeneration
+// https://github.com/auth0/express-openid-connect/issues/43
+// this causes an issue if you create 2 tabs and try to authenticate
+
 const socket = io('http://localhost:5000');
 
 
@@ -97,38 +102,19 @@ function Router({children}) {
   const code = search.get('code')
   const state = search.get('state');
 
-  // this is running twice i think
-  // this thing just keeps adding states to the url
 
-  // this doesnt run initially since authenticated is null at first.
-  // then when auth gets set to false, it gets run again
+
+  // authenticated dependency allows this to re-run when we logout
   useEffect(() => {
-    console.log('isauthen', isAuthenticated);
-    if (isAuthenticated !== null && !code) {
-      // if (isAuthenticated === false && !code) {
-      // if (isAuthenticated === false && code) {
-      //   console.log('code i removed');
-      //   // const buf = Buffer.from(decodeURIComponent(state), 'base64');
-      //   // console.log('am i clickjacked? ', localStorage.getItem('oauthState') !== buf.toString('ascii'));
-      //   // if (localStorage.getItem('oauthState') !== buf.toString('ascii')) {
-      //   //   setIsClickjacked(true);
-      //   //   // window.history.replaceState(null, '', window.location.origin);
-      //   //   // alert('clickjacked!');
-      //   //   console.log(`clickjacked! ${localStorage.getItem('oauthState')} doesn't match ${buf.toString('ascii')}`);
-      //   // }
-      // }
-      // else {
+    if (isAuthenticated === false && !code) {
           console.log('generated randomstring thing!');
           const randomString = generateRandomString();
           const buff = Buffer.from(randomString);
           const base64data = buff.toString('base64');
           localStorage.setItem('oauthState', randomString);
           setDiscordLink(link => link + `&state=${base64data}`)
-        
-
     }
   }, [isAuthenticated]);
-  // }, [code, state, isAuthenticated])
 
   useEffect(() => {
     socket.on('connect', () => {
@@ -141,27 +127,22 @@ function Router({children}) {
         if (sessionId) {
             console.log(`found sessionID ${sessionId}, emitting cookie auth request`);
             socket.emit('cookieAuthRequest', sessionId);
+
             // simulates api delay
             // setTimeout(function() {
             //     console.log('sending auth request!');
             //     socket.emit('cookieAuthRequest', sessionId);
             // }, 3000);
-        // } else if (code && isClickjacked !== null) {
         } else if (code) {
             const buf = Buffer.from(decodeURIComponent(state), 'base64');
-            const tempClickjacked = localStorage.getItem('oauthState') !== buf.toString('ascii')
-            console.log('am i clickjacked? ', tempClickjacked);
-            // if (localStorage.getItem('oauthState') !== buf.toString('ascii')) {
-            //   setIsClickjacked(true);
-            //   // window.history.replaceState(null, '', window.location.origin);
-            //   console.log(`clickjacked! ${localStorage.getItem('oauthState')} doesn't match ${buf.toString('ascii')}`);
-            // }
-            if (tempClickjacked) {
-              // if (isClickjacked) {
-              alert('clickjacked!');
+            const isClickjacked = localStorage.getItem('oauthState') !== buf.toString('ascii')
+            console.log('am i clickjacked? ', isClickjacked);
+            if (isClickjacked) {
+              console.log('local storage is', localStorage.getItem('oauthState'));
+              console.log('state is', buf.toString('ascii'));
+              alert('an error occurred (try logging in again!)');
               console.log('finally popped the clickjacked thing');
               window.history.replaceState(null, '', window.location.origin);
-              // setIsClickjacked(false);
               setIsAuthenticated(false);
               setIsLoading(false);
             } else {
@@ -222,8 +203,6 @@ function Router({children}) {
       setIsLoading(false);
     })
 
-    // for the 'discord button' test button. remove this later
-    socket.on('requestResponse', (res) => console.log('response is: ', res));
     socket.on('connect_error', () => {
       setTimeout(() => socket.connect(), 5000)});
     
@@ -233,13 +212,6 @@ function Router({children}) {
       socket.emit('logout', sessionId);
       window.open(discordLink, '_self');
     });
-
-    // socket.on('cookieAuthSuccess', () => {
-    //     setIsLoggedIn(true);
-    // setIsLoading(false);
-    //     console.log('cookie auth success!');
-    //     // socket.emit('requestUserPayload', sessionId)
-    // });
 
     // put a lot more cleanup here
     return () => {
@@ -251,79 +223,32 @@ function Router({children}) {
         socket.off('cookieAuthSuccess');
         socket.off('discordError');
         socket.off('logoutSuccess');
-        socket.off('requestResponse');
         socket.off('connect_error');
         socket.off('invalidSession');
     };
 }, []);
 
-
-
-  // let ret;
-  // let key;
-  // let exit;
-  // let enter;
-  // let nodeRef;
   let mapIndex;
 
-  // lets do all the fetching stuff for "pages" here 
-  // and once we fetch the needed info, we pass in the needed info to props to the component
-  // and then set "loading" to false
-  // just to keep this all clean, lets just have all the socket events in the websocke context?
   // logic: 
   // done loading + logged in => dashboard
   // done loading + logged out => login
   // loading => root
 
   if (isLoading === true) {
-    // key = 'root';
-    // ret = <Root />;
-    // exit = true;
-    // enter = true;
-    // nodeRef = rootRef;
     mapIndex = 0;
   };
   if (isLoading === false && isAuthenticated === true) {
-    // key = 'dashboard';
-    // ret = <Dashboard 
-    //         socket={socket} 
-    //         isLoggedIn={isAuthenticated} 
-    //         img={img} 
-    //         discordInfo={discordInfo}
-    //         sessionId={sessionId}
-    //         logout={logout}
-    //       />;
-    // exit = false;
-    // enter = true;
-    // nodeRef = dashboardRef;
     mapIndex = 1;
   };
   if (isLoading === false && isAuthenticated === false) {
-    // key = 'login';
-    // ret = <Login discordLink={discordLink}/>;
-    // exit = false;
-    // enter = false;
-    // nodeRef = loginRef;
     mapIndex = 2;
   };
 
   return (
     <TransitionGroup>
-      {/* <CSSTransition
-          key={key}
-          nodeRef={nodeRef}
-          appear={true}
-          exit={exit}
-          enter={enter}
-          timeout={500}
-          classNames="fade"
-        > 
-        <div ref={nodeRef} className='centerthis'>
-         {ret}
-        </div>
-      </CSSTransition> */}
       {routeMap[mapIndex]}
-  </TransitionGroup> 
+    </TransitionGroup> 
   );
 };
 

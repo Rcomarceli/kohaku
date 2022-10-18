@@ -121,15 +121,7 @@ function Dashboard(props) {
   const [cookies, setCookie, removeCookie] = useCookies(['sessionId', 'previewOn']);
   const [filterText, setFilterText] = useState('');
   const [previewOn, setPreviewOn] = useState( (cookies.previewOn === 'true') || false ); //since cookies convert boolean values to strings, we convert the strings to boolean values with "=== 'true'"
-  // const [sessionId, setSessionId] = useState(cookies.sessionId || '');
   const { socket, isLoggedIn, img, discordInfo, sessionId, logout } = props;
-
-
-  // make the logout button loading upon click
-  // function logout() {
-  //   removeCookie('sessionId');
-  //   socket.emit('logout', sessionId);
-  // };
 
   // https://stackoverflow.com/questions/64261626/oauth2-authorization-code-flow-exchange-authorization-code-on-frontend-vs-back
 
