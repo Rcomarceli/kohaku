@@ -1,0 +1,234 @@
+
+
+body {
+    margin: 0px;
+}
+
+.spacerthing {
+    margin: 8px;
+}
+
+.sound-container{
+    width: clamp(200px, 80%, 700px);
+    border: 1px solid #000;
+    padding-top: 10px;
+}
+
+button{
+    margin-left:3px;
+    display:inline;
+    margin-bottom: 5px;
+}
+
+.button {
+    border: none;
+    color: white;
+    padding: 16px 32px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 4px 2px;
+    transition-duration: 0.4s;
+    cursor: pointer;
+}
+
+.button1 {
+    background-color: white;
+    color: black;
+    border: 2px solid #4CAF50;
+}
+  
+.button1:hover {
+    background-color: #4CAF50;
+    color: white;
+}
+
+
+/* Fireship Navbar */
+
+:root {
+    --bg:  #242526;
+    --bg-accent: #484a4d;
+    --text-color: #dadce1;
+    --nav-size: 60px;
+    --border: 1px solid #474a4d;
+    --border-radius: 8px;
+    --speed: 500ms; 
+  }
+  
+ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  
+  a {
+    color: var(--text-color);
+    text-decoration: none;;
+  }
+  
+
+/* Top Navigation Bar */
+
+/* <nav> */
+.navbar {
+    height: var(--nav-size);
+    background-color: var(--bg);
+    padding: 0 1rem;
+    border-bottom: var(--border);
+  }
+
+/* <ul> */
+.navbar-nav {
+    max-width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+.nav-item {
+    width: calc(var(--nav-size) * 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Icon Button */
+.icon-button {
+    --button-size: calc(var(--nav-size) * 0.5);
+    width: var(--button-size);
+    height: var(--button-size);
+    background-color: #484a4d;
+    border-radius: 50%;
+    padding: 5px;
+    margin: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: filter 300ms;
+}
+
+.icon-button:hover {
+    filter: brightness(1.2);
+}
+
+.icon-button svg {
+    fill: var(--text-color);
+    width: 20px;
+    height: 20px;
+}
+
+.dropdown {
+    position: absolute;
+    top: 58px;
+    width: 300px;
+    transform: translateX(-45%);
+    background-color: var(--bg);
+    border: var(--border);
+    border-radius: var(--border-radius);
+    padding: 1rem;
+    overflow: hidden;
+    transition: height var(--speed) ease;
+}
+
+.menu {
+    width: 100%;
+}
+
+.menu-item .icon-button {
+    margin-right: 0.5rem;
+}
+  
+.menu-item .icon-button:hover {
+    filter: none;
+}
+
+.menu-item {
+    height: 50px;
+    display: flex;
+    align-items: center;
+    border-radius: var(--border-radius);
+    transition: background var(--speed);
+    padding: 0.5rem;
+}
+
+.menu-item:hover {
+    background-color: #525357;
+}
+/* https://medium.com/eightshapes-llc/light-dark-9f8ea42c9081 */
+.loading-gif {
+    height: 100vh;
+    background-color: #DEE4E7;
+    /* background-color: var(--bg); */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    /* position: absolute;
+    top: 0;
+    left: 0;
+    right: 0; */
+}
+
+.centerthis{
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+}
+/* appear - on page load
+.fade-appear {
+    opacity: 0;
+}
+
+.fade-appear.fade-appear-active {
+    opacity: 1;
+    transition: opacity 1000ms linear;
+}
+.fade-exit-done{
+    opacity: 0;
+}
+
+/* enter */
+/* .fade-enter {
+    opacity: 0;
+}
+.fade-enter.fade-enter-active {
+    opacity: 1;
+    transition: opacity 1000ms linear;
+} */ *
+
+
+/* appear - on page load */
+.fade-appear {
+    opacity: 0;
+    z-index: 1;
+}
+.fade-appear.fade-appear-active {
+  opacity: 1;
+  transition: opacity 250ms linear;
+}
+
+/* enter */
+.fade-enter {
+  opacity: 0;
+  z-index: 1;
+}
+.fade-enter.fade-enter-active {
+    opacity: 1;
+    transition: opacity 250ms linear;
+    /* transition: opacity 500ms linear 500ms; */
+}
+
+/* exit */
+.fade-exit {
+    opacity: 1;
+}
+.fade-exit.fade-exit-active {
+    opacity: 0;
+    transition: opacity 250ms linear;
+}
+.fade-exit-done {
+  opacity: 0;
+}
