@@ -1,0 +1,4 @@
+# ignores sounds in this folder but keeps the sound folder
+*
+*/
+!.gitignore
