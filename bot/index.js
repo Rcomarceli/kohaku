@@ -21,24 +21,30 @@ const settings = {
 // websocket auth
 // websocket encryption? https://www.section.io/engineering-education/creating-a-real-time-chat-app-with-react-socket-io-with-e2e-encryption/
 // react express sameport: https://stackoverflow.com/questions/67254140/is-it-possible-to-run-node-and-react-in-the-same-port
-// if clickjacked, dont do anything
-// is node-fetch async?
 // put an expiration on the session, have that be emitted to react, and have react use that time to determine maxage
-// convert maps to collection
 // if no session exists, prompt user to relog
 // temp import
 // make initial check for member a function? or a property of certain events?
 // get an existing player first instead of remaking the sound player each time
 
-const { joinVoiceChannel, createAudioPlayer, createAudioResource, StreamType, AudioPlayerStatus } = require('@discordjs/voice');
+const { joinVoiceChannel, createAudioPlayer, createAudioResource, StreamType, AudioPlayerStatus, getVoiceConnection, getGroups } = require('@discordjs/voice');
 const { createReadStream } = require('fs');
 const { join } = require('path');
 
 // logging? https://www.reddit.com/r/node/comments/mgxaob/logging_for_side_hobby_projects/
 const logger = require('./loggerService');
 
+
+// the reason we have 2 collections (split into sessionUsers and userDetails) is so we can perform lookups just based on the user later
 const sessionUsers = new Collection();
 const userDetails = new Collection();
+
+// currently, there is only one player and one voice connection per guild
+// guildPlayers tracks each player for each guild as they get created
+// the voice connection just gets renewed each time (if we attempt to join the same voicechannel, the method doesnt do anything)
+const guildPlayers = new Collection();
+// per guild tracking for the bot to leave the channel after it spends too long idle in the channel
+const idleTimers = new Collection();
 
 // websocket server
 
@@ -49,13 +55,14 @@ client.commands = new Collection();
 
 
 // webserver stuff
-
 const app = express();
 const socketPort = '5000';
 const server = createServer(app);
 const io = socketIo(server, {
-	cors: {
+    cors: {
+        // origin: 'http://192.168.1.168:3000',
 		origin: 'http://localhost:3000',
+		// origin: '*',
 	},
 });
 
@@ -76,30 +83,30 @@ async function oauthAuthenticateUser(oauthCode, oauthSettings) {
     const request = {
         method: 'POST',
         body: new URLSearchParams({
-          client_id: oauthSettings.clientId,
-          client_secret: oauthSettings.clientSecret,
-          code: oauthCode,
-          grant_type: 'authorization_code',
-          redirect_uri: `http://localhost:${oauthSettings.port}`,
-          scope: 'identify',
+            client_id: oauthSettings.clientId,
+            client_secret: oauthSettings.clientSecret,
+            code: oauthCode,
+            grant_type: 'authorization_code',
+            redirect_uri: `http://localhost:${oauthSettings.port}`,
+            scope: 'identify',
         }),
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
+            'Content-Type': 'application/x-www-form-urlencoded',
         },
     };
     console.log('heres the request', request);
     const oauthResult = await fetch('https://discord.com/api/oauth2/token', request);
-        console.log(oauthResult);
-        if (oauthResult.status === 400) return 'invalidCode';
-        return oauthResult;
+    console.log(oauthResult);
+    if (oauthResult.status === 400) return 'invalidCode';
+    return oauthResult;
 }
 
 async function fetchUserPayload(oauthData) {
     const userResult = await fetch('https://discord.com/api/users/@me', {
         headers: {
-          authorization: `${oauthData.token_type} ${oauthData.access_token}`,
-          },
-      });
+            authorization: `${oauthData.token_type} ${oauthData.access_token}`,
+        },
+    });
     const res = await userResult.json();
     return res;
 }
@@ -129,31 +136,35 @@ function setMember(member) {
     userDetails.set(userInfo);
 }
 
-// first sessions map to userid
-// then we map userid to userdetails
+function vcCleanup(guildId) {
+    const voiceConn = getVoiceConnection(guildId);
+    voiceConn.destroy();
+    logger.info('destroyed connection for guildID ', guildId)
+}
 
-// the reason we have 2 collections (split into sessionUsers and userDetails) is so we can perform
 
 // run react and express on same server: https://www.bezkoder.com/integrate-react-express-same-server-port/
 // https://stackoverflow.com/questions/50074078/how-to-emit-data-with-socket-io-client-side
+
+// wrap a lot of this in a try block so we dont crash upon a single error
 io.on('connection', async (socket) => {
-	logger.info(`socket created: ${socket.id}`);
-    // socket.emit('sendSoundFiles', soundFiles);
+    logger.info(`socket created: ${socket.id}`);
     const guilds = await client.guilds.fetch();
-
-    // trying to send emits without waiting for this initial emit from the server can result in emits being missed
+    
+    
+    // trying to send emits without an initial 'ready' from the server can result in emits being missed
     socket.emit('ready');
-
+    
     socket.on('testEmit', (msg) => {
         console.log(msg);
     });
-
+    
     socket.on('logout', async (sessionId) => {
         const session = getSession(sessionId);
         if (session) deleteSession(sessionId);
         console.log('logged out!');
         socket.emit('logoutSuccess');
-
+        
         // simulate api delay
         // setTimeout(() => socket.emit('logoutSuccess'), 2000);
     });
@@ -168,17 +179,17 @@ io.on('connection', async (socket) => {
         // setTimeout(() => socket.emit('cookieAuthSuccess'), 2000);
         socket.emit('cookieAuthSuccess');
     });
-
+    
     socket.on('codeAuthRequest', async (msg) => {
         logger.info('codeAuthRequest incoming');
         const code = msg.code;
         const oauthResult = await oauthAuthenticateUser(code, settings);
         if (oauthResult === 'invalidCode') return socket.emit('discordError', 'discord indicated code is invalid! try relogging!');
-
+        
         const oauthData = await oauthResult.json();
         console.log(oauthData);
         const res = await fetchUserPayload(oauthData);
-
+        
         const userId = res.id;
         const member = await fetchMember(guilds, res.id);
         // need to account if member isnt found
@@ -193,7 +204,7 @@ io.on('connection', async (socket) => {
         // setTimeout(() => socket.emit('codeAuthSuccess', sessionId), 2000);
         socket.emit('codeAuthSuccess', sessionId);
     });
-
+    
     socket.on('requestUserPayload', async (sessionId) => {
         console.log('got request for user payload!');
         const session = getSession(sessionId);
@@ -208,7 +219,7 @@ io.on('connection', async (socket) => {
         };
         socket.emit('userPayload', payload);
     });
-
+    
     socket.on('sendRequest', (msg) => {
         console.log('got send request!');
         console.log('socket id', socket.id);
@@ -216,7 +227,7 @@ io.on('connection', async (socket) => {
         const response = session ? session : 'no session exists with that id!';
         socket.emit('requestResponse', response);
     });
-
+    
 	socket.on('pushButton', async (msg) => {
         const session = getSession(msg.sessionId);
         if (!session) {
@@ -226,38 +237,22 @@ io.on('connection', async (socket) => {
         // if invalid session (replicate this by having a cookie and then restarting bot)
         // emit a "invalidSession"
         // on react, basically destroy the cookie and log back in
-
+        
         // uses cached member from voicestateupdate. if member cant be found, this is usually right when the member logged in
         const member = session.member ? session.member : await fetchMember(guilds, session.id);
-
+        
         if (!member) {
             console.log('no member found!');
             socket.emit('discordError', 'no member found!');
-
             return;
         }
-
+        
         if (!member.voice.channel) {
             return socket.emit('discordError', 'you arent in VC!');
         }
-		const player = createAudioPlayer();
-        // An AudioPlayer will always emit an "error" event with a .resource property
-        player.on('error', error => {
-            console.error('Error:', error.message, 'with track', error.resource.metadata.title);
-        });
-
-        player.on(AudioPlayerStatus.Playing, () => {
-            console.log('The audio player has started playing!');
-            logger.info(`user ${member.user.username}(${member.user.id}) played ${msg.name} in ${member.guild.name}`);
-        });
-
-        player.on(AudioPlayerStatus.Idle, () => {
-            console.log('audio player now idle!');
-            connection.destroy();
-            player.stop();
-        });
-
-		// refactor this join + 'opus' thing
+        
+                    
+        // refactor this join + 'opus' thing
         const resource = createAudioResource(createReadStream(join(__dirname, 'sounds', msg.name) + '.opus', {
             inputType: StreamType.OggOpus,
         }));
@@ -268,18 +263,51 @@ io.on('connection', async (socket) => {
             adapterCreator: member.guild.voiceAdapterCreator,
         });
 
+        // maybe we should just attach the guildplayer to the actual guild object in its collection?
+        let player = guildPlayers.get(member.guild.id)
+        if (!player) {
+            player = createAudioPlayer();
+            let timeout = idleTimers.get(member.guild.id)
+
+            player.on('error', error => {
+                console.error('Error:', error.message, 'with track', error.resource.metadata.title);
+            });
+
+            player.on(AudioPlayerStatus.Playing, () => {
+                console.log('The audio player has started playing!');
+
+                if (timeout) clearTimeout(timeout);
+            });
+
+            player.on(AudioPlayerStatus.Idle, () => {
+                console.log('audio player now idle!');
+
+                // get new connection since connection doesnt renew if you attempt to join the same voice channel above
+                timeout = setTimeout(() => vcCleanup(member.guild.id), 30_000)
+                idleTimers.set(member.guild.id, timeout)
+
+            });
+
+            player.on('error', error => {
+                logger.error(`Error: ${error.message} with resource ${error.resource.metadata.title}`);
+                player.play(getNextResource());
+            });
+
+            guildPlayers.set(member.guild.id, player)
+        }
+
+        logger.info(`user ${member.user.username}(${member.user.id}) played ${msg.name} in ${member.guild.name}`);
         player.play(resource);
-        connection.subscribe(player);
-
-	});
-
-	socket.on('disconnect', (reason) => {
+        
+    });
+    
+    socket.on('disconnect', (reason) => {
         logger.info(`socket destroyed: ${socket.id} due to ${reason}`);
     });
 });
 
 // need to export these before files since some of the files depend on these exports
-
+            
 module.exports = {
     setMember,
     userDetails,
@@ -289,41 +317,26 @@ const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('
 
 for (const file of commandFiles) {
     const command = require(`./commands/${file}`);
-	// Set a new item in the Collection
-	// With the key as the command name and the value as the exported module
-	client.commands.set(command.data.name, command);
+    // Set a new item in the Collection
+    // With the key as the command name and the value as the exported module
+    client.commands.set(command.data.name, command);
 }
 
 const eventFiles = fs.readdirSync('./events').filter(file => file.endsWith('.js'));
 
 for (const file of eventFiles) {
     const event = require(`./events/${file}`);
-	if (event.once) {
+    if (event.once) {
         client.once(event.name, (...args) => event.execute(...args));
-	} else {
+    } else {
         client.on(event.name, (...args) => event.execute(...args));
-	}
+    }
 }
-
-
-// connection.on(VoiceConnectionStatus.Ready, (oldState, newState) => {
-//     console.log('Connection is in the Ready state!');
-// });
-
-// player.on(AudioPlayerStatus.Playing, (oldState, newState) => {
-//     console.log('Audio player is in the Playing state!');
-// });
 
 // Login to Discord with your client's token
 client.login(token);
 
 server.listen(socketPort, err => {
     if (err) console.log(err);
-	console.log(`server running on port ${socketPort}`);
+    console.log(`server running on port ${socketPort}`);
 });
-
-// module.exports = {
-//     sessionUsers,
-// };
-
-// console.log('exports thing ')

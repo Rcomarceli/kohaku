@@ -13,11 +13,17 @@ import {io} from 'socket.io-client';
 // wip:
 // opening 2 tabs and then logging into the 2nd tab causes clickjacked warning
 // put an additional "Secret" field here so random people dont just login to the app
+// instead of "secret" just do a whitelist based on discord members
+// encrypt connection to websocket
+// proxy connections https://create-react-app.dev/docs/proxying-api-requests-in-development
+// rework buttons so that we relog if session invalid (replicate by restarting bot after logging in)
+// prevent another codeauthrequest upon bot relog. it should only be done on the initial login sequence
 
 // multiple tabs + state regeneration
 // https://github.com/auth0/express-openid-connect/issues/43
 // this causes an issue if you create 2 tabs and try to authenticate
 
+// const socket = io('192.168.1.168:5000');
 const socket = io('http://localhost:5000');
 
 

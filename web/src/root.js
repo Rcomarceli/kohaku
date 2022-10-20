@@ -4,7 +4,7 @@ import { CSSTransition, TransitionGroup } from 'react-transition-group';
 
 function Root() {
     return (
-        <div className='loading-gif'>
+        <div className='loading-container'>
             <img src={loadingGif} alt="loading..." />
         </div>
     );

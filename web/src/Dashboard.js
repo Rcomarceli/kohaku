@@ -49,11 +49,13 @@ function SoundList(props) {
     socket.emit('pushButton', message);
   }
 
+  // we should just do a map here.
   Object.keys(soundsCache).forEach((sound) => {
     const soundName = sound.slice(2, -5); //get rid of the "./" at beginning ".opus" at the end
     if (soundName.indexOf(filterText) === -1) {
       return;
     }
+
 
     sounds_array.push(
       <SoundButton 
