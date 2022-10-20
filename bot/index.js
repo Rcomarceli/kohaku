@@ -139,7 +139,7 @@ function setMember(member) {
 function vcCleanup(guildId) {
     const voiceConn = getVoiceConnection(guildId);
     voiceConn.destroy();
-    logger.info('destroyed connection for guildID ', guildId)
+    // logger.info('destroyed connection for guildID ', guildId)
 }
 
 
@@ -292,9 +292,12 @@ io.on('connection', async (socket) => {
                 logger.error(`Error: ${error.message} with resource ${error.resource.metadata.title}`);
                 player.play(getNextResource());
             });
-
+            
             guildPlayers.set(member.guild.id, player)
         }
+        
+        // redundant subscription since itll subscribe each time
+        connection.subscribe(player)
 
         logger.info(`user ${member.user.username}(${member.user.id}) played ${msg.name} in ${member.guild.name}`);
         player.play(resource);

@@ -18,6 +18,8 @@ import {io} from 'socket.io-client';
 // proxy connections https://create-react-app.dev/docs/proxying-api-requests-in-development
 // rework buttons so that we relog if session invalid (replicate by restarting bot after logging in)
 // prevent another codeauthrequest upon bot relog. it should only be done on the initial login sequence
+// add an error page if websocket fails to establish
+
 
 // multiple tabs + state regeneration
 // https://github.com/auth0/express-openid-connect/issues/43

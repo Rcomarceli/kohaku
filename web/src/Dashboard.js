@@ -88,18 +88,19 @@ class ConnectedUsers extends Component {
 
 function Options(props) {
   return (
-    <p>
-    <input 
-      type="checkbox" 
-      checked={props.previewOn} 
-      onChange={(e) => {
-        props.setPreviewOn(e.target.checked)
-        // props.setCookie('previewOn', e.target.checked, { sameSite: 'strict' });
-      }}
-    />
-    {' '}
-    Preview Sound File
-    </p>
+    <div className="temp-center">
+      <p>
+      <input 
+        type="checkbox" 
+        checked={props.previewOn} 
+        onChange={(e) => {
+          props.setPreviewOn(e.target.checked)
+          // props.setCookie('previewOn', e.target.checked, { sameSite: 'strict' });
+        }}
+      />
+      Preview Sound
+      </p>
+    </div>
   );
   
 }
@@ -130,9 +131,6 @@ function Dashboard(props) {
   return (
           <>
             <Navbar>
-            <NavItem icon={<CogIcon />} handleLogin={logout} />
-            </Navbar>
-            <div className="spacerthing">
             <SearchBar 
                 filterText={filterText}
                 setFilterText={setFilterText}
@@ -142,6 +140,9 @@ function Dashboard(props) {
                 setPreviewOn={setPreviewOn}
                 setCookie={setCookie}
             />
+            <NavItem icon={<CogIcon />} handleLogin={logout} />
+            </Navbar>
+            <div className="spacerthing">
             <DiscordText
                 userName={discordInfo['username']}
                 discriminator={discordInfo['discriminator']}

@@ -8,7 +8,7 @@ export function Navbar(props) {
 
 export function NavItem(props) {
     return (
-      <li className="nav-item">
+      <li className="nav-item right">
         <button className="icon-button" onClick={(e) => props.handleLogin()}>
         {/* <a href="#" className="icon-button"> */}
           {props.icon}

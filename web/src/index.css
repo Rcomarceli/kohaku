@@ -117,12 +117,25 @@ ul {
     border-bottom: var(--border);
   }
 
+.navbar form {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.temp-center {
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
 /* <ul> */
 .navbar-nav {
     max-width: 100%;
     height: 100%;
     display: flex;
-    justify-content: flex-end;
+    justify-content: flex-start;
+    /* justify-content: flex-end; */
   }
 
 .nav-item {
@@ -130,6 +143,12 @@ ul {
     display: flex;
     align-items: center;
     justify-content: center;
+    
+    /* margin-left: auto; */
+}
+
+.right {
+    margin-left: auto;
 }
 
 /* Icon Button */
